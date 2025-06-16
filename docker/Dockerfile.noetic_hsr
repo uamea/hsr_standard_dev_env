@@ -1,0 +1,83 @@
+ARG nvidia_cuda_version=11.8.0-devel-ubuntu20.04
+
+FROM nvidia/cuda:${nvidia_cuda_version} AS base
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=C.UTF-8
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+SHELL ["/bin/bash", "-c"]
+
+# Add repositories and keys in a single layer to reduce image size
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt \
+    apt-get update && \
+    apt-get install -y --no-install-recommends wget curl ca-certificates gnupg2 lsb-release software-properties-common && \
+    sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list' && \
+    curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | apt-key add - && \
+    sh -c 'echo "deb [arch=amd64] https://hsr-user:jD3k4G2e@packages.hsr.io/ros/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/tmc.list' && \
+    sh -c 'echo "deb [arch=amd64] https://hsr-user:jD3k4G2e@packages.hsr.io/tmc/ubuntu `lsb_release -cs` multiverse main" >> /etc/apt/sources.list.d/tmc.list' && \
+    sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list' && \
+    wget https://hsr-user:jD3k4G2e@packages.hsr.io/tmc.key -O - | apt-key add - && \
+    wget https://packages.osrfoundation.org/gazebo.key -O - | apt-key add - && \
+    mkdir -p /etc/apt/auth.conf.d && \
+    echo -e "machine packages.hsr.io\nlogin hsr-user\npassword jD3k4G2e" > /etc/apt/auth.conf.d/auth.conf && \
+    echo -e "Package: ros-noetic-laser-ortho-projector\nPin: version 0.3.3*\nPin-Priority: 1001\n\nPackage: ros-noetic-laser-scan-matcher\nPin: version 0.3.3*\nPin-Priority: 1001\n\nPackage: ros-noetic-laser-scan-sparsifier\nPin: version 0.3.3*\nPin-Priority: 1001\n\nPackage: ros-noetic-laser-scan-splitter\nPin: version 0.3.3*\nPin-Priority: 1001\n\nPackage: ros-noetic-ncd-parser\nPin: version 0.3.3*\nPin-Priority: 1001\n\nPackage: ros-noetic-polar-scan-matcher\nPin: version 0.3.3*\nPin-Priority: 1001\n\nPackage: ros-noetic-scan-to-cloud-converter\nPin: version 0.3.3*\nPin-Priority: 1001\n\nPackage: ros-noetic-scan-tools\nPin: version 0.3.3*\nPin-Priority: 1001" > /etc/apt/preferences && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install ROS and development tools in a single layer
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ros-noetic-desktop-full \
+        python3-pip \
+        python3-rosdep \
+        python3-rosinstall \
+        python3-rosinstall-generator \
+        python3-wstool \
+        python3-catkin-tools \
+        build-essential \
+        git \
+        sudo \
+        ros-noetic-tmc-desktop-full && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    # Initialize rosdep
+    rosdep init && \
+    rosdep update
+
+# Install uv using buildkit's ADD with checksum to enable caching
+ADD --checksum=sha256:80b7513b33c4db1631abe302374cf766747ec973b27de84acf3ad57a4e234098 \
+    https://astral.sh/uv/install.sh /tmp/uv-installer.sh
+
+# Install uv in a separate layer and set up shell completion
+RUN chmod +x /tmp/uv-installer.sh && \
+    /tmp/uv-installer.sh && \
+    rm /tmp/uv-installer.sh && \
+    /root/.local/bin/uv self update && \
+    echo 'export PATH="/root/.local/bin:$PATH"' >> /root/.bashrc && \
+    echo 'eval "$(uv generate-shell-completion bash)"' >> /root/.bashrc && \
+    echo 'eval "$(uvx --generate-shell-completion bash)"' >> /root/.bashrc
+
+# Configure ROS environment
+RUN echo "export ROS_HOME=\${HOME}/.ros" >> /root/.bashrc && \
+    echo "export ROS_MASTER_URI=http://localhost:11311" >> /root/.bashrc && \
+    echo "export ROS_IP=TMP_IP" >> /root/.bashrc && \
+    echo "source /opt/ros/noetic/setup.bash" >> /root/.bashrc
+
+# Create a smaller final image
+FROM base AS final
+
+# Copy only essential files from the base image
+COPY --from=base /opt/ros /opt/ros
+COPY --from=base /etc/apt /etc/apt
+COPY --from=base /root/.bashrc /root/.bashrc
+COPY --from=base /root/.local /root/.local
+
+# Create app directory
+WORKDIR /app/
+
+CMD ["/bin/bash"]

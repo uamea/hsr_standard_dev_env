@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  hsr_dev_env:
+    image: weblab/hsr_env:latest
+    environment:
+      - DISPLAY=${DISPLAY}
+    network_mode: host
+    ipc: host
+    privileged: true
+    user: "${USER_ID}:${GROUP_ID}"
+    volumes: 
+      - /dev:/dev
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ../:/app/
+    command: /app/docker/scripts/initialize-docker-container.sh
+    stdin_open: true
+    tty: true
