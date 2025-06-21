@@ -50,7 +50,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
     rosdep update
 
 # Install uv using buildkit's ADD with checksum to enable caching
-ADD --checksum=sha256:80b7513b33c4db1631abe302374cf766747ec973b27de84acf3ad57a4e234098 \
+ADD --checksum=sha256:1bd6dcfae3377079ed9ebeb47cc814b0a9b6f42a81089e97de49cd26f7b9d2d2 \
     https://astral.sh/uv/install.sh /tmp/uv-installer.sh
 
 # Install uv in a separate layer and set up shell completion
@@ -70,6 +70,8 @@ RUN echo "export ROS_HOME=\${HOME}/.ros" >> /root/.bashrc && \
 
 # Create a smaller final image
 FROM base AS final
+
+ENV PATH="/root/.local/bin:${PATH}"
 
 # Copy only essential files from the base image
 COPY --from=base /opt/ros /opt/ros

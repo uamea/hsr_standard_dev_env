@@ -1,0 +1,27 @@
+version: '3'
+
+services:
+  hsr_dev_env:
+    image: weblab/hsr_env:latest
+    command: /app/.devcontainer/initialize-devcontainer.sh
+    environment:
+      - DISPLAY=${DISPLAY}
+      - USER=${USER}
+      - USER_ID=${USER_ID:-1000}
+      - GROUP_ID=${GROUP_ID:-1000}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    network_mode: host
+    ipc: host
+    # Force default runtime for dev container (no GPU)
+    runtime: runc
+    shm_size: '8gb'
+    privileged: true
+    stdin_open: true
+    tty: true
+    volumes:
+      - ..:/app
+      - /dev:/dev
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - type: bind
+        source: ${PWD}/../keys/authorized_keys
+        target: /root/.ssh/authorized_keys

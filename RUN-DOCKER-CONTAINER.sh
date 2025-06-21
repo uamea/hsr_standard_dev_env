@@ -8,6 +8,8 @@ set -e
 # Change to the directory containing the script
 cd "$(dirname "$0")"
 
+USERNAME=$(whoami)
+
 function check_requirements() {
   if [ ! -e keys/authorized_keys ]; then
     echo "ファイルkeys/authorized_keysが存在しないので作成します"
@@ -55,7 +57,7 @@ function setup_project_name() {
   fi
 
   export HSR_PROJECT_NAME="$PROJECT"
-  CONTAINER="${PROJECT}_robocup_1"
+  CONTAINER="${PROJECT}_hsr_dev_env_1"
   echo "$0: PROJECT=${PROJECT}"
   echo "$0: CONTAINER=${CONTAINER}"
 }
@@ -141,25 +143,12 @@ function enter_container() {
 
   case "$option" in
   "")
-    docker exec -e DISPLAY="$DISPLAY" -i -t "${CONTAINER}" bash
+    # Use -l flag to ensure .bashrc is sourced in bash
+    docker exec -e DISPLAY="$DISPLAY" -i -t -u "${USERNAME}" "${CONTAINER}" bash -l
     ;;
-  "weblab_wrs")
-    docker exec -i -t "${CONTAINER}" bash -i -c "source ~/HSR/docker/scripts/run-roslaunch-repeatedly-option.sh weblab_hsr_dev weblab_wrs env"
-    ;;
-  "weblab_wrs_v2")
-    docker exec -i -t "${CONTAINER}" bash -i -c "source ~/HSR/docker/scripts/run-roslaunch-repeatedly-option.sh weblab_wrs_v2 weblab_wrs_v2 rosbag"
-    ;;
-  "task_manager")
-    docker exec -i -t "${CONTAINER}" bash -i -c "source ~/HSR/docker/scripts/run-roslaunch-repeatedly-task-manager.sh"
-    ;;
-  "finger")
-    docker exec -i -t "${CONTAINER}" bash -i -c "source ~/HSR/docker/scripts/run-roslaunch-repeatedly-without-option.sh weblab_wrs_v2 finger"
-    ;;
-  "start_demo")
-    docker exec -i -t "${CONTAINER}" bash -i -c "source ~/HSR/docker/scripts/run-start-demo-service.sh"
-    ;;
+  # Other cases...
   *)
-    docker exec -e DISPLAY="$DISPLAY" -i -t "${CONTAINER}" bash
+    docker exec -e DISPLAY="$DISPLAY" -i -t -u "${USERNAME}" "${CONTAINER}" bash -l
     ;;
   esac
 }
@@ -185,5 +174,5 @@ update_container_hosts
 echo "Setting up X11 authentication..."
 setup_x11_auth
 
-echo "Entering the container..."
-enter_container "$2"
+# echo "Entering the container..."
+# enter_container "$2"

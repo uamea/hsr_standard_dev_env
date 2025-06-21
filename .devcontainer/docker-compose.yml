@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  hsr_dev_env:
+    command: /app/.devcontainer/initialize-devcontainer.sh
+    environment:
+      - DISPLAY=${DISPLAY}
+      - USER=${USER}
+      - USER_ID=${USER_ID:-1000}
+      - GROUP_ID=${GROUP_ID:-1000}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    # Override runtime to use default runc for dev container to avoid GPU issues
+    runtime: runc
+    volumes:
+      - ..:/app
+      - /dev:/dev
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - type: bind
+        source: ${PWD}/../keys/authorized_keys
+        target: /root/.ssh/authorized_keys

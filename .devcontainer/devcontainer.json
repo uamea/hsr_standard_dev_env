@@ -1,0 +1,66 @@
+{
+  "name": "HSR Development Environment",
+  "dockerComposeFile": [
+    "docker-compose.override.yml"
+  ],
+  "service": "hsr_dev_env",
+  "workspaceFolder": "/app",
+  "shutdownAction": "stopCompose",
+  "overrideCommand": false,
+  "remoteUser": "${localEnv:USER}",
+  "initializeCommand": "bash -c 'cd ${localWorkspaceFolder} && source .devcontainer/detect-env.sh && export HSR_PROJECT_NAME=devcontainer && export USER_ID=$(id -u) && export GROUP_ID=$(id -g) && ./RUN-DOCKER-CONTAINER.sh devcontainer'",
+  "postCreateCommand": "bash -c 'echo \"Dev container setup complete\"'",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-ceintl.vscode-language-pack-ja",
+        "ms-python.python",
+        "ms-python.debugpy",
+        "ms-iot.vscode-ros",
+        "ms-vscode.cpptools",
+        "ms-vscode.cpptools-extension-pack",
+        "eamodio.gitlens",
+        "donjayamanne.githistory",
+        "mhutchie.git-graph",
+        "njpwerner.autodocstring",
+        "ms-python.isort",
+        "christian-kohler.path-intellisense",
+        "usernamehw.errorlens",
+        "ms-python.black-formatter",
+        "ms-python.mypy-type-checker"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/app/.venv/bin/python",
+        "python.formatting.provider": "black",
+        "python.linting.enabled": true,
+        "python.linting.mypyEnabled": true,
+        "python.sortImports.path": "/app/.venv/bin/isort",
+        "ros.distro": "noetic",
+        "C_Cpp.default.includePath": [
+          "/opt/ros/noetic/include/**",
+          "/app/catkin_ws/src/**",
+          "/app/catkin_ws/devel/include/**"
+        ],
+        "C_Cpp.default.compilerPath": "/usr/bin/gcc",
+        "C_Cpp.default.cStandard": "c11",
+        "C_Cpp.default.cppStandard": "c++14",
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "terminal.integrated.profiles.linux": {
+          "bash": {
+            "path": "/bin/bash",
+            "args": ["-l"]
+          }
+        }
+      }
+    }
+  },
+  "forwardPorts": [],
+  "mounts": [
+    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached"
+  ],
+  "containerEnv": {
+    "DISPLAY": "${localEnv:DISPLAY}",
+    "OPENAI_API_KEY": "${localEnv:OPENAI_API_KEY}",
+    "DOCKER_RUNTIME": "runc"
+  }
+}

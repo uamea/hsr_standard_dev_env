@@ -60,6 +60,15 @@ RUN mkdir -p /home/${USERNAME}/.local/share && \
     chown ${USER_ID}:${GROUP_ID} /app && \
     chmod +x /app/docker/scripts/*.sh
 
+# Before switching users, make sure uv is accessible to the new user
+RUN mkdir -p /home/${USERNAME}/.local/bin && \
+    cp /root/.local/bin/uv /home/${USERNAME}/.local/bin/ && \
+    chown -R ${USER_ID}:${GROUP_ID} /home/${USERNAME}/.local && \
+    chmod +x /home/${USERNAME}/.local/bin/uv
+
+# Make sure the PATH includes the user's .local/bin
+ENV PATH="/home/${USERNAME}/.local/bin:${PATH}"
+
 # Switch to non-root user
 USER ${USERNAME}
 

@@ -1,0 +1,28 @@
+{
+  "files.associations": {
+    "*.launch": "xml",
+    "*.urdf": "xml",
+    "*.xacro": "xml"
+  },
+  "python.defaultInterpreterPath": "./.venv/bin/python",
+  "python.terminal.activateEnvironment": true,
+  "ros.distro": "noetic",
+  "C_Cpp.default.includePath": [
+    "/opt/ros/noetic/include/**",
+    "./catkin_ws/src/**",
+    "./catkin_ws/devel/include/**"
+  ],
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true,
+    "**/build": true,
+    "**/devel": true,
+    "**/.venv": false
+  },
+  "search.exclude": {
+    "**/__pycache__": true,
+    "**/build": true,
+    "**/devel": true,
+    "**/.venv": true
+  }
+}

@@ -7,12 +7,18 @@ services:
       - DISPLAY=${DISPLAY}
     network_mode: host
     ipc: host
+    runtime: ${DOCKER_RUNTIME:-nvidia}
+    shm_size: '8gb'
     privileged: true
     user: "${USER_ID}:${GROUP_ID}"
     volumes: 
       - /dev:/dev
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ../:/app/
+      # Public SSH keys
+      - type: bind
+        source: ${PWD}/keys/authorized_keys
+        target: /root/.ssh/authorized_keys
     command: /app/docker/scripts/initialize-docker-container.sh
     stdin_open: true
     tty: true
