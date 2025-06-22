@@ -47,10 +47,8 @@ function check_nvidia_runtime() {
 function setup_project_name() {
   if [ -n "$HSR_PROJECT_NAME" ]; then
     PROJECT="$HSR_PROJECT_NAME"
-    HSR_NUMBER="$1"
-  elif [ -n "$1" ]; then
+  elif [ -n "$1" ]; then 
     PROJECT="$1"
-    HSR_NUMBER="$2"
   else
     echo "Set HSR_PROJECT_NAME (e.g. 'export HSR_PROJECT_NAME=mytest')"
     exit 1
@@ -63,6 +61,10 @@ function setup_project_name() {
 }
 
 function setup_hsr_hostname() {
+  if [ -z "$HSR_NUMBER" ]; then
+    read -p "HSRの番号を入力してください (sim, c, c017, 97, 107, ...): " HSR_NUMBER
+  fi
+
   if [ "$HSR_NUMBER" = "c" ]; then
     HSRB_HOSTNAME="hsrc.local"
     CMD="hsrc_mode"
@@ -73,6 +75,27 @@ function setup_hsr_hostname() {
     HSRB_HOSTNAME="hsrb${HSR_NUMBER}.local"
     CMD="hsrb${HSR_NUMBER}_mode"
   fi
+
+  # Resolve hostname and export for docker-compose
+  echo "Now resolving local host name '${HSRB_HOSTNAME}'..."
+  HSRB_IP=$(avahi-resolve -4 --name "${HSRB_HOSTNAME}" 2>/dev/null | cut -f 2 || true)
+
+  if ! command -v avahi-resolve &>/dev/null; then
+    echo "Failed to execute 'avahi-resolve'. You may need to install 'avahi-utils'."
+    HSRB_IP="127.0.0.1"
+  elif [ -n "${HSRB_IP}" ]; then
+    echo "Successfully resolved host name '${HSRB_HOSTNAME}' as '${HSRB_IP}'"
+  else
+    echo "Failed to resolve host name '${HSRB_HOSTNAME}': Using localhost."
+    HSRB_IP="127.0.0.1"
+  fi
+
+  # Export variables for docker-compose
+  export HSRB_HOSTNAME="${HSRB_HOSTNAME}"
+  export HSRB_IP="${HSRB_IP}"
+  
+  echo "Exported HSRB_HOSTNAME=${HSRB_HOSTNAME}"
+  echo "Exported HSRB_IP=${HSRB_IP}"
 }
 
 function run_docker_container() {
@@ -85,41 +108,21 @@ function run_docker_container() {
       docker start "${CONTAINER}" || {
         echo "Failed to start container. Removing and recreating..."
         docker rm "${CONTAINER}" || true
-        docker compose --compatibility -p "${PROJECT}" -f ./docker/docker-compose.yml up -d
+        docker compose --compatibility -p "${PROJECT}" --build-args HSRB_HOSTNAME=${HSRB_HOSTNAME} HSRB_IP=${HSRB_IP} -f ./docker/docker-compose.yml up -d --build
       }
     else
       echo "Container '${CONTAINER}' does not exist."
       echo "Creating a new container..."
-      docker compose --compatibility -p "${PROJECT}" -f ./docker/docker-compose.yml up -d
+      docker compose --compatibility -p "${PROJECT}" -build-args HSRB_HOSTNAME=${HSRB_HOSTNAME} HSRB_IP=${HSRB_IP} -f ./docker/docker-compose.yml up -d
     fi
   fi
 }
 
 function update_container_hosts() {
-  echo "Now resolving local host name '${HSRB_HOSTNAME}'..."
-  HSRB_IP=$(avahi-resolve -4 --name "${HSRB_HOSTNAME}" 2>/dev/null | cut -f 2 || true)
-
-  # Check if avahi-resolve is installed and functional
-  if ! command -v avahi-resolve &>/dev/null; then
-    echo "Failed to execute 'avahi-resolve'. You may need to install 'avahi-utils'."
-    docker exec -i "${CONTAINER}" bash <<EOF
-sed -i '/HSRB_HOSTNAME=/c HSRB_HOSTNAME=${HSRB_HOSTNAME}' ~/.bashrc
-EOF
-  elif [ -n "${HSRB_IP}" ]; then
-    echo "Successfully resolved host name '${HSRB_HOSTNAME}' as '${HSRB_IP}': '/etc/hosts' in the container is automatically updated."
-    docker exec -i "${CONTAINER}" bash <<EOF
-sed -i '/HSRB_HOSTNAME=/c HSRB_HOSTNAME=${HSRB_HOSTNAME}' ~/.bashrc
-sed -n -e '/^[^#[:space:]]*[[:space:]]\+${HSRB_HOSTNAME}\$/!p' /etc/hosts > /etc/hosts.tmp;
-echo '${HSRB_IP} ${HSRB_HOSTNAME}' >> /etc/hosts.tmp
-cp /etc/hosts.tmp /etc/hosts;
-EOF
-  else
-    echo "Failed to resolve host name '${HSRB_HOSTNAME}': '/etc/hosts' in the container was not automatically updated. HSRB_HOSTNAME is set to 'localhost'."
-    HSRB_HOSTNAME="localhost"
-    docker exec -i "${CONTAINER}" bash <<EOF
-sed -i '/HSRB_HOSTNAME=/c HSRB_HOSTNAME=${HSRB_HOSTNAME}' ~/.bashrc
-EOF
-  fi
+  echo "Setting HSRB_HOSTNAME environment variable in container..."
+  docker exec -i "${CONTAINER}" bash -c "
+sed -i '/HSRB_HOSTNAME=/c\\HSRB_HOSTNAME=${HSRB_HOSTNAME}' ~/.bashrc
+"
 }
 
 function setup_x11_auth() {

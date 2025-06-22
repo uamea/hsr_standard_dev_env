@@ -11,6 +11,8 @@ services:
     shm_size: '8gb'
     privileged: true
     user: "${USER_ID}:${GROUP_ID}"
+    extra_hosts:
+      - "${HSRB_HOSTNAME}:${HSRB_IP}"
     volumes: 
       - /dev:/dev
       - /tmp/.X11-unix:/tmp/.X11-unix:rw

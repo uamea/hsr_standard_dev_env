@@ -51,7 +51,9 @@ fi
 echo "source /app/.venv/bin/activate" >> /home/${USERNAME}/.bashrc
 
 # Set up HSRB environment variables
-echo "export HSRB_HOSTNAME=\${HSRB_HOSTNAME:-localhost}" >> /home/${USERNAME}/.bashrc
+# Use the HSRB_HOSTNAME from environment if available, otherwise default to localhost
+HSRB_HOSTNAME_VALUE="${HSRB_HOSTNAME:-localhost}"
+echo "export HSRB_HOSTNAME=${HSRB_HOSTNAME_VALUE}" >> /home/${USERNAME}/.bashrc
 
 # Set proper ownership of home directory
 chown -R "${USER_ID}:${GROUP_ID}" "/home/${USERNAME}" 2>/dev/null || true
